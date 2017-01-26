@@ -1,0 +1,23 @@
+{
+  "name": "englishman",
+  "version": "1.0.0",
+  "description": "slack bot",
+  "main": "index.js",
+  "repository": {},
+  "author": "exromany <exromany@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "node ."
+  },
+  "dependencies": {
+    "chrono-node": "^1.2.5",
+    "dotenv": "^4.0.0",
+    "google-spreadsheet": "^2.0.3",
+    "mitt": "^1.0.1",
+    "moment": "^2.17.1",
+    "natural": "^0.4.0",
+    "node-schedule": "^1.2.0",
+    "slackbots": "^1.0.2",
+    "when": "^3.7.7"
+  }
+}

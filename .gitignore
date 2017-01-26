@@ -1,0 +1,31 @@
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage
+
+# OS generated files #
+.DS_Store
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# Node Files #
+/node_modules
+/npm-debug.log
+
+# Coverage #
+/coverage/
+
+# IDE #
+.idea/
+*.swp
+
+# PRIVATE ENV #
+.env
