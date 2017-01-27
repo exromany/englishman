@@ -53,14 +53,18 @@ class Bot {
 
   remindUsers(lesson) {
     console.log('BOT:remind:users', new Date(), lesson.start);
+    const channelUsers = this.bot.users
+      .filter(user => this.channel.members.includes(user.id))
     lesson.users
-      .map(userName => findRelativeUser(userName, this.bot.users))
+      .slice(0, 5)
+      .map(userName => findRelativeUser(userName, channelUsers))
       .filter(x => x)
       .forEach(user => this.remindUser(user, lesson));
   }
 
   remindUser(user, lesson) {
-    const text = 'It will soon begin classes in which you are enrolled';
+    console.log('BOT:remind:user', new Date(), user.real_name);
+    const text = 'In a few minutes will begin lesson in which you are enrolled';
     const attachments = [
       Object.assign(shortLessonDescription(lesson), {
         color: '#d9edf7'

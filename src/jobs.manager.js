@@ -51,7 +51,7 @@ class JobsManager {
   }
 
   remindUsersBeforeLesson(lesson) {
-    const date = moment(lesson.start).subtract(10, 'minutes').toDate();
+    const date = moment(lesson.start).subtract(5, 'minutes').toDate();
     if (moment().isAfter(date)) {
       return;
     }
