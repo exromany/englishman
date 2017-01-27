@@ -35,15 +35,16 @@ class Bot {
   }
 
   remindChannel(lesson) {
-    console.log('BOT:remind:channel', new Date(), this.channel.name);
     const seats = lesson.users.length;
     const emptySeats = MAX_SEATS >= seats ? MAX_SEATS - seats : 0;
     if (!emptySeats) {
+      console.log('BOT:remind:channel:skipped', new Date(), this.channel.name);
       return;
     }
-    const text = `Next lesson have ${emptySeats} empty seats`;
+    console.log('BOT:remind:channel', new Date(), this.channel.name);
+    const text = 'There are empty spots the next lesson'
     const attachments = [
-      Object.assign(shortLessonDescription(lesson), {
+      Object.assign(Bot.shortLessonDescription(lesson), {
         color: '#36a64f'
       })
     ];
@@ -52,12 +53,12 @@ class Bot {
   }
 
   remindUsers(lesson) {
-    console.log('BOT:remind:users', new Date());
+    console.log('BOT:remind:users', new Date(), lesson.users.join(', '));
     const channelUsers = this.bot.users
-      .filter(user => this.channel.members.includes(user.id))
+      .filter(user => !user.deleted && !user.is_bot && bot.channel.members.includes(user.id))
     lesson.users
       .slice(0, 5)
-      .map(userName => findRelativeUser(userName, channelUsers))
+      .map(userName => Bot.findRelativeUser(userName, channelUsers))
       .filter(x => x)
       .forEach(user => this.remindUser(user, lesson));
   }
@@ -66,7 +67,7 @@ class Bot {
     console.log('BOT:remind:user', new Date(), user.real_name);
     const text = 'In a few minutes will begin lesson in which you are enrolled';
     const attachments = [
-      Object.assign(shortLessonDescription(lesson), {
+      Object.assign(Bot.shortLessonDescription(lesson), {
         color: '#d9edf7'
       })
     ];
@@ -78,32 +79,30 @@ class Bot {
   logError(error) {
     console.log('BOT:error', error)
   }
-}
 
-function shortLessonDescription(lesson) {
-  return {
-    title: `${moment(lesson.start).format('k:mm')} [${lesson.users.length}/${MAX_SEATS}]`,
-    title_link: lesson.url,
-    text: lesson.topic,
-    footer: 'Google Sheets',
-    footer_icon: 'https://www.google.com/sheets/about/favicon.ico'
+  static shortLessonDescription(lesson) {
+    return {
+      title: `${moment(lesson.start).format('k:mm')} [persons ${lesson.users.length}/${MAX_SEATS}]`,
+      title_link: lesson.url,
+      text: lesson.topic,
+      footer: 'Google Sheets',
+      footer_icon: 'https://www.google.com/sheets/about/favicon.ico'
+    }
   }
-}
 
-function findRelativeUser(searchedName, users) {
-  const distance = natural.JaroWinklerDistance;
-  console.log(searchedName);
-  return users
-    .map(user => {
-      const altRealName = user.real_name.split(' ').reverse().join(' ');
-      const dist = Math.max(distance(searchedName, user.real_name), distance(searchedName, altRealName));
-      return {user, dist}
-    })
-    .sort((a, b) => b.dist - a.dist)
-    .slice(0, 1)
-    // .map(item => (console.log(item.user.real_name, ':', item.dist), item))
-    .map(item => item.user)
-    .shift()
+  static findRelativeUser(searchedName, users) {
+    const distance = natural.JaroWinklerDistance;
+    return users
+      .map(user => {
+        const altRealName = user.real_name.split(' ').reverse().join(' ');
+        const dist = Math.max(distance(searchedName, user.real_name), distance(searchedName, altRealName));
+        return {user, dist}
+      })
+      .sort((a, b) => b.dist - a.dist)
+      .slice(0, 1)
+      .map(item => item.user)
+      .shift()
+  }
 }
 
 module.exports = Bot;

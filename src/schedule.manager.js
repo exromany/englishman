@@ -50,8 +50,8 @@ class ScheduleManager {
       .then(data => {
         this.schedule = data;
         this.lastUpdateTime = updateTime;
-        this.emitter.emit('sync_done', data);
         console.log('SM:sync:done', new Date);
+        this.emitter.emit('sync_done', data);
       }, this.logError)
   }
 

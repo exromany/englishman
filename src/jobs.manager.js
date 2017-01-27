@@ -39,7 +39,7 @@ class JobsManager {
   }
 
   remindChannelForFreeSpots(lesson) {
-    const date = moment(lesson.start).subtract(55, 'minutes').toDate();
+    const date = moment(lesson.start).subtract(40, 'minutes').toDate();
     if (moment().isAfter(date)) {
       return;
     }
