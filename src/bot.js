@@ -35,7 +35,7 @@ class Bot {
   }
 
   remindChannel(lesson) {
-    console.log('BOT:remind:channel', new Date(), lesson.start);
+    console.log('BOT:remind:channel', new Date(), this.channel.name);
     const seats = lesson.users.length;
     const emptySeats = MAX_SEATS >= seats ? MAX_SEATS - seats : 0;
     if (!emptySeats) {
@@ -52,7 +52,7 @@ class Bot {
   }
 
   remindUsers(lesson) {
-    console.log('BOT:remind:users', new Date(), lesson.start);
+    console.log('BOT:remind:users', new Date());
     const channelUsers = this.bot.users
       .filter(user => this.channel.members.includes(user.id))
     lesson.users
