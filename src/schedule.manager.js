@@ -4,6 +4,8 @@ const chrono = require('chrono-node');
 const moment = require('moment');
 const mitt = require('mitt');
 
+const logger = require('./logger');
+
 const SHEET_KEY = process.env.SHEET_KEY;
 const CREDS = {
   client_email: process.env.GOOGLE_CREDS_EMAIL,
@@ -13,6 +15,10 @@ const SYNC_DELAY = parseInt(process.env.SYNC_DELAY, 10) || 60000;
 
 class ScheduleManager {
   constructor() {
+    this.emitter = mitt();
+    this.on = this.emitter.on;
+    this.log = logger('SM');
+
     this.schedule = null;
     this.lastUpdateTime = null;
 
@@ -20,9 +26,6 @@ class ScheduleManager {
     this.sync = this.sync.bind(this);
     this.loadSheet = this.loadSheet.bind(this);
     this.logError = this.logError.bind(this);
-
-    this.emitter = mitt();
-    this.on = this.emitter.on;
 
     const doc = new GoogleSpreadsheet(SHEET_KEY);
     this.docInit = nodefn.lift(doc.useServiceAccountAuth)(CREDS)
@@ -50,7 +53,8 @@ class ScheduleManager {
       .then(data => {
         this.schedule = data;
         this.lastUpdateTime = updateTime;
-        console.log('SM:sync:done', new Date);
+
+        this.log('sync:done');
         this.emitter.emit('sync_done', data);
       }, this.logError);
   }
@@ -93,9 +97,8 @@ class ScheduleManager {
 
   logError(error) {
     if (!error) return;
-    console.log('SM:sync:error', error);
+    this.log('sync:error', error);
   }
-
 }
 
 module.exports = ScheduleManager;

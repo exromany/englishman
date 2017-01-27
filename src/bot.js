@@ -2,16 +2,21 @@ const SlackBot = require('slackbots');
 const moment = require('moment');
 const natural = require('natural');
 
+const logger = require('./logger');
+
 const SLACK_TOKEN = process.env.SLACK_TOKEN;
 const MAX_SPOTS = parseInt(process.env.MAX_SPOTS, 10) || 5;
 
 class Bot {
   constructor() {
+    this.log = logger('BOT');
+
     this.onMessage = this.onMessage.bind(this);
     this.remindChannel = this.remindChannel.bind(this);
     this.remindUsers = this.remindUsers.bind(this);
     this.remindUser = this.remindUser.bind(this);
     this.post = this.post.bind(this);
+    this.logError = this.logError.bind(this);
 
     this.bot = new SlackBot({ token: SLACK_TOKEN });
     this.bot.on('start', () => {
@@ -37,10 +42,11 @@ class Bot {
     const seats = lesson.users.length;
     const emptySeats = MAX_SPOTS >= seats ? MAX_SPOTS - seats : 0;
     if (!emptySeats) {
-      console.log('BOT:remind:channel:skipped', new Date(), this.channel.name);
+      this.log('remind:channel:skipped', this.channel.name);
       return;
     }
-    console.log('BOT:remind:channel', new Date(), this.channel.name);
+    this.log('remind:channel', this.channel.name);
+
     const text = 'There are empty spots the next lesson';
     const attachments = [
       Object.assign(Bot.shortLessonDescription(lesson), {
@@ -52,7 +58,8 @@ class Bot {
   }
 
   remindUsers(lesson) {
-    console.log('BOT:remind:users', new Date(), lesson.users.join(', '));
+    this.log('remind:users', lesson.users.join(', '));
+
     const channelUsers = this.bot.users
       .filter(user => !user.deleted && !user.is_bot && this.channel.members.includes(user.id));
     lesson.users
@@ -63,7 +70,8 @@ class Bot {
   }
 
   remindUser(user, lesson) {
-    console.log('BOT:remind:user', new Date(), user.real_name);
+    this.log('remind:user', user.real_name);
+
     const text = 'In a few minutes will begin lesson in which you are enrolled';
     const attachments = [
       Object.assign(Bot.shortLessonDescription(lesson), {
@@ -76,7 +84,7 @@ class Bot {
   }
 
   logError(error) {
-    console.log('BOT:error', error);
+    this.log('error', error);
   }
 
   static shortLessonDescription(lesson) {

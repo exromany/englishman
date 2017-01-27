@@ -2,8 +2,14 @@ const schedule = require('node-schedule');
 const moment = require('moment');
 const mitt = require('mitt');
 
+const logger = require('./logger');
+
 class JobsManager {
   constructor() {
+    this.log = logger('JM');
+    this.emitter = mitt();
+    this.on = this.emitter.on;
+
     this.jobs = [];
 
     this.update = this.update.bind(this);
@@ -11,9 +17,6 @@ class JobsManager {
     this.setReminders = this.setReminders.bind(this);
     this.remindChannelForFreeSpots = this.remindChannelForFreeSpots.bind(this);
     this.remindUsersBeforeLesson = this.remindUsersBeforeLesson.bind(this);
-
-    this.emitter = mitt();
-    this.on = this.emitter.on;
   }
 
   update(schedule) {
@@ -47,7 +50,8 @@ class JobsManager {
       this.emitter.emit('remind_channel_before_lesson', lesson);
     });
     this.jobs.push(job);
-    console.log('JM:set_reminder:channel', date);
+
+    this.log('set:reminder:channel', date);
   }
 
   remindUsersBeforeLesson(lesson) {
@@ -59,7 +63,8 @@ class JobsManager {
       this.emitter.emit('remind_users_before_lesson', lesson);
     });
     this.jobs.push(job);
-    console.log('JM:set_reminder:users', date);
+
+    this.log('set:reminder:users', date);
   }
 }
 
