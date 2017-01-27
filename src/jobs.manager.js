@@ -25,7 +25,7 @@ class JobsManager {
       .map(day => day.lessons)
       .reduce((list, items) => list.concat(items), [])
       .filter(lesson => now.isSameOrBefore(lesson.start))
-      .forEach(this.setReminders)
+      .forEach(this.setReminders);
   }
 
   resetJobs() {

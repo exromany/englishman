@@ -1,15 +1,15 @@
 const GoogleSpreadsheet = require('google-spreadsheet');
 const nodefn = require('when/node');
 const chrono = require('chrono-node');
-const moment = require('moment')
+const moment = require('moment');
 const mitt = require('mitt');
 
 const SHEET_KEY = process.env.SHEET_KEY;
 const CREDS = {
   client_email: process.env.GOOGLE_CREDS_EMAIL,
-  private_key: process.env.GOOGLE_CREDS_KEY
+  private_key: (process.env.GOOGLE_CREDS_KEY || '').replace(/\\n/g, `\n`).replace(/^[\"\']+|[\"\']+$/g, '')
 };
-const SYNC_DELAY = parseInt(process.env.SYNC_DELAY, 10);
+const SYNC_DELAY = parseInt(process.env.SYNC_DELAY, 10) || 60000;
 
 class ScheduleManager {
   constructor() {
@@ -26,7 +26,7 @@ class ScheduleManager {
 
     const doc = new GoogleSpreadsheet(SHEET_KEY);
     this.docInit = nodefn.lift(doc.useServiceAccountAuth)(CREDS)
-      .then(() => doc)
+      .then(() => doc);
   }
 
   recurrenceSync() {
@@ -52,7 +52,7 @@ class ScheduleManager {
         this.lastUpdateTime = updateTime;
         console.log('SM:sync:done', new Date);
         this.emitter.emit('sync_done', data);
-      }, this.logError)
+      }, this.logError);
   }
 
   loadSheet(sheet) {

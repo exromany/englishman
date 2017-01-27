@@ -1,10 +1,9 @@
 const SlackBot = require('slackbots');
-const nodefn = require('when/node');
 const moment = require('moment');
 const natural = require('natural');
 
 const SLACK_TOKEN = process.env.SLACK_TOKEN;
-const MAX_SEATS = parseInt(process.env.MAX_SEATS, 10);
+const MAX_SPOTS = parseInt(process.env.MAX_SPOTS, 10) || 5;
 
 class Bot {
   constructor() {
@@ -17,7 +16,7 @@ class Bot {
     this.bot = new SlackBot({ token: SLACK_TOKEN });
     this.bot.on('start', () => {
       this.channel = this.bot.channels.filter(channel => channel.is_member)[0];
-    })
+    });
     this.bot.on('message', this.onMessage);
   }
 
@@ -30,19 +29,19 @@ class Bot {
     const messageParams = {
       attachments: attachments,
       as_user: true
-    }
+    };
     return this.bot.postMessage(id, text, messageParams);
   }
 
   remindChannel(lesson) {
     const seats = lesson.users.length;
-    const emptySeats = MAX_SEATS >= seats ? MAX_SEATS - seats : 0;
+    const emptySeats = MAX_SPOTS >= seats ? MAX_SPOTS - seats : 0;
     if (!emptySeats) {
       console.log('BOT:remind:channel:skipped', new Date(), this.channel.name);
       return;
     }
     console.log('BOT:remind:channel', new Date(), this.channel.name);
-    const text = 'There are empty spots the next lesson'
+    const text = 'There are empty spots the next lesson';
     const attachments = [
       Object.assign(Bot.shortLessonDescription(lesson), {
         color: '#36a64f'
@@ -55,7 +54,7 @@ class Bot {
   remindUsers(lesson) {
     console.log('BOT:remind:users', new Date(), lesson.users.join(', '));
     const channelUsers = this.bot.users
-      .filter(user => !user.deleted && !user.is_bot && bot.channel.members.includes(user.id))
+      .filter(user => !user.deleted && !user.is_bot && this.channel.members.includes(user.id));
     lesson.users
       .slice(0, 5)
       .map(userName => Bot.findRelativeUser(userName, channelUsers))
@@ -77,17 +76,17 @@ class Bot {
   }
 
   logError(error) {
-    console.log('BOT:error', error)
+    console.log('BOT:error', error);
   }
 
   static shortLessonDescription(lesson) {
     return {
-      title: `${moment(lesson.start).format('k:mm')} [persons ${lesson.users.length}/${MAX_SEATS}]`,
+      title: `${moment(lesson.start).format('k:mm')} [persons ${lesson.users.length}/${MAX_SPOTS}]`,
       title_link: lesson.url,
       text: lesson.topic,
       footer: 'Google Sheets',
       footer_icon: 'https://www.google.com/sheets/about/favicon.ico'
-    }
+    };
   }
 
   static findRelativeUser(searchedName, users) {
@@ -96,12 +95,12 @@ class Bot {
       .map(user => {
         const altRealName = user.real_name.split(' ').reverse().join(' ');
         const dist = Math.max(distance(searchedName, user.real_name), distance(searchedName, altRealName));
-        return {user, dist}
+        return { user, dist };
       })
       .sort((a, b) => b.dist - a.dist)
       .slice(0, 1)
       .map(item => item.user)
-      .shift()
+      .shift();
   }
 }
 

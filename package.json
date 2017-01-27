@@ -7,7 +7,8 @@
   "author": "exromany <exromany@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "node ."
+    "start": "node .",
+    "lint": "eslint ."
   },
   "dependencies": {
     "chrono-node": "^1.2.5",
@@ -19,5 +20,8 @@
     "node-schedule": "^1.2.0",
     "slackbots": "^1.0.2",
     "when": "^3.7.7"
+  },
+  "devDependencies": {
+    "eslint": "^3.14.1"
   }
 }

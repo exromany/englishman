@@ -1,0 +1,30 @@
+{
+  "extends": "eslint:recommended",
+  "env": {
+    "es6": true,
+    "commonjs": true,
+    "node": true
+  },
+  "rules": {
+    "key-spacing": ["error", {
+      "beforeColon": false,
+      "afterColon": true
+    }],
+    "semi": "error",
+    "eqeqeq": "error",
+    "radix": "error",
+    "dot-notation": "error",
+    "no-var": "error",
+    "no-console": "off",
+    "no-throw-literal": "error",
+    "no-case-declarations": "off",
+    "no-trailing-spaces": "error",
+    "handle-callback-err": "error",
+    "prefer-const": "error",
+    "prefer-rest-params": "error",
+    "prefer-spread": "error",
+    "prefer-template": "error",
+    "template-curly-spacing": ["error", "never"],
+    "object-curly-spacing": ["error", "always"]
+  }
+}
