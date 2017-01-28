@@ -1,5 +1,5 @@
 const GoogleSpreadsheet = require('google-spreadsheet');
-const nodefn = require('when/node');
+const { lift } = require('when/node');
 const chrono = require('chrono-node');
 const moment = require('moment');
 const mitt = require('mitt');
@@ -17,18 +17,21 @@ class ScheduleManager {
   constructor() {
     this.emitter = mitt();
     this.on = this.emitter.on;
-    this.log = logger('SM');
+    this.log = logger.bind(logger, 'SM');
+    this.logError = (error) => error && this.log('error', error);
 
-    this.schedule = null;
+    this.lessons = [];
     this.lastUpdateTime = null;
 
     this.recurrenceSync = this.recurrenceSync.bind(this);
     this.sync = this.sync.bind(this);
     this.loadSheet = this.loadSheet.bind(this);
-    this.logError = this.logError.bind(this);
+    this.loadCells = this.loadCells.bind(this);
+    this.addUserToLesson = this.addUserToLesson.bind(this);
+    this.removeUserFromLesson = this.removeUserFromLesson.bind(this);
 
     const doc = new GoogleSpreadsheet(SHEET_KEY);
-    this.docInit = nodefn.lift(doc.useServiceAccountAuth)(CREDS)
+    this.docInit = lift(doc.useServiceAccountAuth)(CREDS)
       .then(() => doc);
   }
 
@@ -40,7 +43,7 @@ class ScheduleManager {
   sync() {
     let updateTime;
     return this.docInit
-      .then(doc => nodefn.lift(doc.getInfo)())
+      .then(doc => lift(doc.getInfo)())
       .then(data => {
         updateTime = chrono.strict.parseDate(data.updated);
         if (moment(this.lastUpdateTime).isSame(updateTime)) {
@@ -50,12 +53,14 @@ class ScheduleManager {
       })
       .then(sheets => Promise.all(sheets.map(this.loadSheet)))
       .then(data => data.filter(x => x))
-      .then(data => {
-        this.schedule = data;
+      .then(data => data.reduce((list, items) => list.concat(items), []))
+      .then(lessons => lessons.sort((a, b) => a.start - b.start))
+      .then(lessons => {
+        this.lessons = lessons;
         this.lastUpdateTime = updateTime;
 
         this.log('sync:done');
-        this.emitter.emit('sync_done', data);
+        this.emitter.emit('sync_done', lessons);
       }, this.logError);
   }
 
@@ -65,7 +70,7 @@ class ScheduleManager {
       return undefined;
     }
     const url = sheet._links['http://schemas.google.com/visualization/2008#visualizationApi'].replace('gviz/tq?','#');
-    return nodefn.lift(sheet.getCells)({ 'return-empty': false })
+    return lift(sheet.getCells)({ 'return-empty': false })
       .then(cells => {
         const lessons = {};
         cells.forEach(cell => {
@@ -73,31 +78,46 @@ class ScheduleManager {
             case 1:
               const times = chrono.parse(cell.value.replace(/\./g, ':'), date);
               return lessons[cell.col] = {
-                title: cell.value,
                 start: times && times.length && times[0].start.date() || null,
                 end: times && times.length && times[0].end && times[0].end.date() || null,
                 topic: '',
+                users: [],
                 url: url,
-                users: []
+                sheetId: sheet.id,
+                cellCol: cell.col
               };
             case 2: return lessons[cell.col] && (lessons[cell.col].topic = cell.value);
             default: return lessons[cell.col] && lessons[cell.col].users.push(cell.value);
           }
         });
         return Object.keys(lessons).map(col => lessons[col]);
-      })
-      .then(lessons => ({
-        id: sheet.id,
-        title: sheet.title,
-        url: url,
-        date: date,
-        lessons: lessons
+      });
+  }
+
+  loadCells(lesson) {
+    return this.docInit
+      .then(doc => lift(doc.getCells)(lesson.sheetId, {
+        'return-empty': true,
+        'min-row': 3,
+        'min-col': lesson.cellCol,
+        'max-col': lesson.cellCol
       }));
   }
 
-  logError(error) {
-    if (!error) return;
-    this.log('sync:error', error);
+  addUserToLesson(name, lesson) {
+    return this.loadCells(lesson)
+      .then(cells => cells.find(cell => !cell.value))
+      .then(cell => lift(cell.setValue)(name));
+  }
+
+  removeUserFromLesson(name, lesson){
+    const shiftCells = (cell, index, list) => lift(cell.setValue)((list[index + 1] || { value: '' }).value);
+    return this.loadCells(lesson)
+      .then(cells => {
+        const index = cells.findIndex(cell => cell.value === name);
+        const lastIndex = cells.findIndex(cell => !cell.value);
+        return Promise.all(cells.slice(index, lastIndex).map(shiftCells));
+      });
   }
 }
 

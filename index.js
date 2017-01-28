@@ -13,6 +13,6 @@ schedule.on('sync_done', jobs.update);
 jobs.on('remind_channel_before_lesson', bot.remindChannel);
 jobs.on('remind_users_before_lesson', bot.remindUsers);
 
-logger('MAIN')('started');
+logger('MAIN', 'started');
 
 schedule.recurrenceSync();

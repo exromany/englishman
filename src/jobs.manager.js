@@ -6,7 +6,7 @@ const logger = require('./logger');
 
 class JobsManager {
   constructor() {
-    this.log = logger('JM');
+    this.log = logger.bind(logger, 'JM');
     this.emitter = mitt();
     this.on = this.emitter.on;
 
@@ -19,14 +19,10 @@ class JobsManager {
     this.remindUsersBeforeLesson = this.remindUsersBeforeLesson.bind(this);
   }
 
-  update(schedule) {
-    const today = moment().startOf('day');
+  update(lessons) {
     const now = moment();
     this.resetJobs();
-    schedule
-      .filter(day => today.isSameOrBefore(day.date))
-      .map(day => day.lessons)
-      .reduce((list, items) => list.concat(items), [])
+    lessons
       .filter(lesson => now.isSameOrBefore(lesson.start))
       .forEach(this.setReminders);
   }

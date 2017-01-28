@@ -9,25 +9,28 @@ const MAX_SPOTS = parseInt(process.env.MAX_SPOTS, 10) || 5;
 
 class Bot {
   constructor() {
-    this.log = logger('BOT');
+    this.log = logger.bind(logger, 'BOT');
+    this.logError = (error) => this.log('error', error);
 
     this.onMessage = this.onMessage.bind(this);
     this.remindChannel = this.remindChannel.bind(this);
     this.remindUsers = this.remindUsers.bind(this);
     this.remindUser = this.remindUser.bind(this);
     this.post = this.post.bind(this);
-    this.logError = this.logError.bind(this);
 
     this.bot = new SlackBot({ token: SLACK_TOKEN });
     this.bot.on('start', () => {
       this.channel = this.bot.channels.filter(channel => channel.is_member)[0];
     });
     this.bot.on('message', this.onMessage);
+    this.bot.on('open', this.log.bind(this, 'connection:open'));
+    this.bot.on('error', this.log.bind(this, 'connection:error'));
+    this.bot.on('close', this.log.bind(this, 'connection:close'));
   }
 
   onMessage(data) {
     if (data.type !== 'message' || data.bot_id) return;
-    console.log(data);
+    this.log('message', data);
   }
 
   post(id, text, attachments = []) {
@@ -81,10 +84,6 @@ class Bot {
 
     this.post(user.id, text, attachments)
       .catch(this.logError);
-  }
-
-  logError(error) {
-    this.log('error', error);
   }
 
   static shortLessonDescription(lesson) {
