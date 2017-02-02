@@ -75,7 +75,7 @@ class ScheduleManager {
     const byDay = (num) => (cell) => cell.row >= (num - 1) * DAY_ROWS + 1 && cell.row <= num * DAY_ROWS;
     const byCol = (col) => (cell) => cell.col === col;
     const byRow = (row) => (cell) => cell.row % DAY_ROWS === row;
-    const byRowGE = (row) => (cell) => cell.row % DAY_ROWS >= row;
+    const byRowGE = (row) => (cell) => (cell.row - 1) % DAY_ROWS >= row - 1;
     const byPos = (col, row) => (cell) => cell.col === col && cell.row % DAY_ROWS === row;
     const getValue = (cell) => cell ? cell.value : null;
 

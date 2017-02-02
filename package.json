@@ -1,9 +1,13 @@
 {
   "name": "englishman",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "slack bot",
   "main": "index.js",
-  "repository": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/exromany/englishman.git"
+  },
+  "private": true,
   "author": "exromany <exromany@gmail.com>",
   "license": "MIT",
   "scripts": {

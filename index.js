@@ -7,7 +7,7 @@ const logger = require('./src/logger');
 
 const schedule = new ScheduleManager();
 const jobs = new JobsManager();
-const bot = new Bot();
+const bot = new Bot(schedule);
 
 schedule.on('sync_done', jobs.update);
 jobs.on('remind_channel_before_lesson', bot.remindChannel);

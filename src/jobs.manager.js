@@ -4,6 +4,9 @@ const mitt = require('mitt');
 
 const logger = require('./logger');
 
+const REMIND_CHANNEL_MINS = 45;
+const REMIND_USER_MINS = 3;
+
 class JobsManager {
   constructor() {
     this.log = logger.bind(logger, 'JM');
@@ -38,7 +41,7 @@ class JobsManager {
   }
 
   remindChannelForFreeSpots(lesson) {
-    const date = moment(lesson.start).subtract(40, 'minutes').toDate();
+    const date = moment(lesson.start).subtract(REMIND_CHANNEL_MINS, 'minutes').toDate();
     if (moment().isAfter(date)) {
       return;
     }
@@ -51,7 +54,7 @@ class JobsManager {
   }
 
   remindUsersBeforeLesson(lesson) {
-    const date = moment(lesson.start).subtract(5, 'minutes').toDate();
+    const date = moment(lesson.start).subtract(REMIND_USER_MINS, 'minutes').toDate();
     if (moment().isAfter(date)) {
       return;
     }
