@@ -27,7 +27,7 @@ class ScheduleManager {
     this.recurrenceSync = this.recurrenceSync.bind(this);
     this.sync = this.sync.bind(this);
     this.loadSheet = this.loadSheet.bind(this);
-    this.loadCells = this.loadCells.bind(this);
+    this.loadUserCells = this.loadUserCells.bind(this);
     this.addUserToLesson = this.addUserToLesson.bind(this);
     this.removeUserFromLesson = this.removeUserFromLesson.bind(this);
 
@@ -115,7 +115,7 @@ class ScheduleManager {
       .then(readDays({ url, sheetId }));
   }
 
-  loadCells(lesson) {
+  loadUserCells(lesson) {
     return this.docInit
       .then(doc => lift(doc.getCells)(lesson.sheetId, {
         'return-empty': true,
@@ -127,7 +127,7 @@ class ScheduleManager {
   }
 
   addUserToLesson(name, lesson) {
-    return this.loadCells(lesson)
+    return this.loadUserCells(lesson)
       .then(cells => cells.find(cell => !cell.value))
       .then(cell => cell && lift(cell.setValue)(name) || Promise.reject('No empty cells'))
       .then(() => this.log('user:add', name, lesson.start))
@@ -136,7 +136,7 @@ class ScheduleManager {
 
   removeUserFromLesson(name, lesson){
     const shiftCells = (cell, index, list) => lift(cell.setValue)((list[index + 1] || { value: '' }).value);
-    return this.loadCells(lesson)
+    return this.loadUserCells(lesson)
       .then(cells => {
         const index = cells.findIndex(cell => cell.value === name);
         if (index < 0) {

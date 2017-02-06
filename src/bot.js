@@ -4,6 +4,7 @@ const natural = require('natural');
 const chrono = require('chrono-node');
 
 const logger = require('./logger');
+const Analizer = require('./analizer');
 
 const SLACK_TOKEN = process.env.SLACK_TOKEN;
 const MAX_SPOTS = parseInt(process.env.MAX_SPOTS, 10) || 5;
@@ -20,10 +21,12 @@ class Bot {
     this.post = this.post.bind(this);
 
     this.schedule = schedule;
+    this.analizer = new Analizer();
     this.bot = new SlackBot({ token: SLACK_TOKEN });
     this.bot.on('start', () => {
       this.channel = this.bot.channels.filter(channel => channel.is_member)[0];
       this.selfId = this.bot.self.id;
+      this.selfNames = ['englishman', 'english_man', 'english-man', `<@${this.selfId.toLowerCase()}>`];
     });
     this.bot.on('message', this.onMessage);
     this.bot.on('open', this.log.bind(this, 'connection:open'));
@@ -37,18 +40,34 @@ class Bot {
 
     const text = (data.text || '').toLowerCase();
 
-    const botNames = ['englishman', 'english_man', 'english-man', `<@${this.selfId.toLowerCase()}>`];
-    const botCalled = botNames.some(name => text.includes(name));
-    const date = chrono.parse(text)[0];
+    const isDirectMessage = data.channel.startsWith('D');
+    const botCalled = isDirectMessage || this.selfNames.some(name => text.includes(name));
 
-    if (botCalled || text.includes('schedule') || text.includes('timetable')) {
-      return this.postSchedule(data.channel, date && date.start.date());
-    }
+    this.analizer.analize(text)
+      .then(({ action, date }) => {
+        console.log(date);
+        if (botCalled && (action === 'hi' || action === 'help')) {
+          return this.sayHi(data.channel);
+        }
+        if (botCalled && action === 'enrol') {
+          return this.enroll(data.channel, data.user, date.start.date());
+        }
+        if (botCalled || text.includes('schedule') || text.includes('timetable')) {
+          return this.postSchedule(data.channel, date && date.start.date());
+        }
+      });
+  }
+
+  sayHi(channelId) {
+    const text = 'Hi!';
+
+    this.post(channelId, text)
+      .catch(this.logError);
   }
 
   postSchedule(channelId, date) {
-    const day = moment(date);
-    const dayFormat = day.format('dddd, MMMM Do').toLowerCase();
+    const day = moment(date.date());
+    const dayFormat = day.format('dddd, MMMM Do');
     let text = `Lessons on ${dayFormat}`;
 
     const d1 = day.clone().startOf('day');
@@ -58,7 +77,7 @@ class Bot {
     if (!lessons.length && date) {
       text = `There are no lessons on ${dayFormat}`;
     } else if (!lessons.length) {
-      const nextLesson = lessons.find(l => day.isSameOrBefore(l.start));
+      const nextLesson = this.schedule.lessons.find(l => day.isSameOrBefore(l.start));
       const nextDate = nextLesson && nextLesson.start;
       if (nextDate) {
         return this.postSchedule(channelId, nextDate);
@@ -74,23 +93,30 @@ class Bot {
   }
 
   enroll(channelId, userId, date) {
-    const user = this.bot.users.find(user => user.id === userId);
-    const lesson = this.schedule.findLessonByDate(date);
+    if (!date.knownValues.hour) {
+      return this.post(channelId, `Please, specify time`);
+    }
+    const userToEnroll = this.getUserById(userId);
+
+    const time = moment(date).startOf('hour');
+    const lesson = this.schedule.findLessonByDate(time);
 
     if (!lesson) {
-      return this.post(channelId, `I can't find lesson at this time: ${date}`);
+      return this.post(channelId, `I can't find lesson at this time: ${time.format('dddd, MMMM Do, h a')}`);
     }
 
     const users = this.getChannelUsers();
     const enrolledUsers = lesson.users.map(user => Bot.findRelativeUser(user, users));
 
-    if (enrolledUsers.includes(user)) {
-      return this.post(channelId, `${user.real_name}, looks like you already enrolled to the lesson`);
+    if (enrolledUsers.find()) {
+      return this.post(channelId, `${userToEnroll.real_name}, looks like you already enrolled to the lesson`);
+    } else if (lesson.users.length > MAX_SPOTS) {
+      return this.post(channelId, `${userToEnroll.real_name}, looks like you already enrolled to the lesson`);
     }
 
     return this.schedule
-      .addUserToLesson(user.real_name, lesson)
-      .then(() => `you are enrolled for ${date}`)
+      .addUserToLesson(userToEnroll.real_name, lesson)
+      .then(() => `@${userToEnroll.name}, you are enrolled for ${time.format('dddd, MMMM Do, h a')}`)
       .then(text => this.post(channelId, text));
   }
 
@@ -126,7 +152,7 @@ class Bot {
 
     const channelUsers = this.getChannelUsers();
     lesson.users
-      .slice(0, MAX_SPOTS)
+      // .slice(0, MAX_SPOTS)
       .map(userName => Bot.findRelativeUser(userName, channelUsers))
       .filter(x => x)
       .forEach(user => this.remindUser(user, lesson));
