@@ -5,7 +5,7 @@ const mitt = require('mitt');
 const logger = require('./logger');
 
 const REMIND_CHANNEL_MINS = 45;
-const REMIND_USER_MINS = 3;
+const REMIND_USER_MINS = 5;
 
 class JobsManager {
   constructor() {

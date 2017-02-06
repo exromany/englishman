@@ -1,0 +1,32 @@
+[
+  {
+    "color": "#f0f361",
+    "pretext": "I will notify about empty spots for lessons",
+    "author_name": "English-man",
+    "text": "You can ask me for some commands",
+    "footer": "Don't forget to call me by name in public channel",
+    "mrkdwn_in": [
+      "fields"
+    ],
+    "fields": [
+      {
+        "title": "Show timetable",
+        "value": "```Show me schedule for today```",
+        "short": false
+      },
+      {
+        "title": "Enroll to lesson",
+        "value": "```enroll me to wednesday, 12:00```",
+        "short": false
+      },
+      {
+        "title": "Unenroll from lesson",
+        "value": "```unenroll me from wednesday, 12:00```",
+        "short": false
+      }
+    ]
+  },
+  {
+    "text": "Want more? <https://github.com/exromany/englishman/issues|Create issue or PR>"
+  }
+]

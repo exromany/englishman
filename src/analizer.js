@@ -41,14 +41,10 @@ class Analizer {
       .then(action => action ? this.stemmer.stem(action) : null)
       .then(Analizer.classifyAction)
       .catch(() => null)
-      .then(action => ({
-        action,
-        date: date && date.start
-      }));
+      .then(action => ({ action, date }));
   }
 
   static getAction(tags) {
-    // tags.map(t => console.log(t));
     let action = tags.find(Analizer.isType('W')) || tags.find(Analizer.isType('VB'));
 
     if (!action) {
@@ -76,13 +72,22 @@ class Analizer {
     switch (action) {
       case 'add':
       case 'sign':
-      case 'signup':
       case 'enrol':
+      case 'signup':
       case 'regist':
+      case 'subscrib':
         return Analizer.ENROLL_ACTION;
+      case 'remov':
+      case 'delet':
+      case 'releas':
+      case 'signout':
+      case 'unenrol':
+      case 'unregist':
+      case 'unsubscrib':
+        return Analizer.UNENROLL_ACTION;
       case 'hi':
-      case 'hello':
       case 'ping':
+      case 'hello':
       case 'start':
       case 'check':
       case 'welcom':
@@ -103,6 +108,7 @@ class Analizer {
 }
 
 Analizer.ENROLL_ACTION = 'enroll';
+Analizer.UNENROLL_ACTION = 'unenroll';
 Analizer.HELLO_ACTION = 'hello';
 Analizer.HELP_ACTION = 'help';
 Analizer.SCHEDULE_ACTION = 'schedule';

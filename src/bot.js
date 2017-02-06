@@ -1,9 +1,14 @@
 const SlackBot = require('slackbots');
 const moment = require('moment');
 const natural = require('natural');
+const uniqueRandomArray = require('unique-random-array');
 
-const logger = require('./logger');
 const Analizer = require('./analizer');
+const logger = require('./logger');
+const greetings = require('./greetings.json');
+const helpMessage = require('./help.json');
+
+const randomHi = uniqueRandomArray(greetings);
 
 const SLACK_TOKEN = process.env.SLACK_TOKEN;
 const MAX_SPOTS = parseInt(process.env.MAX_SPOTS, 10) || 5;
@@ -44,7 +49,7 @@ class Bot {
 
     this.analizer.analize(text)
       .then(({ action, date }) => {
-        this.log('message:parsed', { action, date: date });
+        this.log('message:parsed', { action, date: date && date.start.date() });
 
         if (botCalled && action === 'help') {
           return this.sayHelp(data.channel);
@@ -53,30 +58,31 @@ class Bot {
           return this.sayHi(data.channel);
         }
         if (botCalled && action === 'enroll') {
-          return this.enroll(data.channel, data.user, date);
+          return this.enroll(data.channel, data.user, date && date.start);
+        }
+        if (botCalled && action === 'unenroll') {
+          return this.unenroll(data.channel, data.user, date && date.start);
         }
         if (botCalled || text.includes('schedule') || text.includes('timetable')) {
-          return this.postSchedule(data.channel, date);
+          return this.postSchedule(data.channel, date && date.start.date());
         }
       });
   }
 
   sayHelp(channelId) {
-    const text = 'Issues: https://github.com/exromany/englishman/issues';
-
-    this.post(channelId, text)
+    this.post(channelId, null, helpMessage)
       .catch(this.logError);
   }
 
   sayHi(channelId) {
-    const text = 'Hi! I can tell you the schedule';
+    const text = `${randomHi()}\nAsk me for schedule!`;
 
     this.post(channelId, text)
       .catch(this.logError);
   }
 
   postSchedule(channelId, date) {
-    const day = moment(date.date());
+    const day = moment(date);
     const dayFormat = day.format('dddd, MMMM Do');
     let text = `Lessons on ${dayFormat}`;
 
@@ -103,12 +109,12 @@ class Bot {
   }
 
   enroll(channelId, userId, date) {
-    if (date.knownValues.hour === undefined) {
+    if (!date || date.knownValues.hour === undefined) {
       return this.post(channelId, `Please, specify time`);
     }
     const userToEnroll = this.getUserById(userId);
 
-    const time = moment(date.date()).startOf('hour');
+    const time = moment(date && date.date()).startOf('hour');
     const lesson = this.schedule.findLessonByDate(time);
 
     if (!lesson) {
@@ -119,16 +125,48 @@ class Bot {
     const enrolledUsers = lesson.users.map(user => Bot.findRelativeUser(user, users));
 
     if (enrolledUsers.find(user => user.id === userToEnroll.id)) {
-      return this.post(channelId, `${userToEnroll.real_name}, looks like you already enrolled to the lesson`);
+      return this.post(channelId, `${Bot.atUser(userToEnroll)}, looks like you already enrolled to the lesson`);
     } else if (lesson.users.length >= MAX_SPOTS) {
-      return this.post(channelId, `${userToEnroll.real_name}, looks like there are no free spots to this lesson`);
+      return this.post(channelId, `${Bot.atUser(userToEnroll)}, looks like there are no free spots to this lesson`);
     }
 
     return this.schedule
       .addUserToLesson(userToEnroll.real_name, lesson)
-      .then(() => `@${userToEnroll.name}, you are enrolled for ${time.format('dddd, MMMM Do, k:mm')}`)
-      .catch(() => `failed to enroll`)
-      .then(text => this.post(channelId, text));
+      .then(() => `${Bot.atUser(userToEnroll)}, you are enrolled for ${time.format('dddd, MMMM Do, k:mm')}`)
+      .then(text => this.post(channelId, text, [Bot.shortLessonDescription(lesson)]))
+      .catch(() => this.post(channelId, 'failed to enroll'));
+  }
+
+  unenroll(channelId, userId, date) {
+    if (!date || date.knownValues.hour === undefined) {
+      return this.post(channelId, `Please, specify time`);
+    }
+    const userToRemove = this.getUserById(userId);
+
+    const time = moment(date && date.date()).startOf('hour');
+    const lesson = this.schedule.findLessonByDate(time);
+
+    if (!lesson) {
+      return this.post(channelId, `I can't find lesson at this time: ${time.format('dddd, MMMM Do, k:mm')}`);
+    }
+
+    const users = this.getChannelUsers();
+    const enrolledName = lesson.users
+      .map(name => ({ name, user: Bot.findRelativeUser(name, users) }))
+      .filter(({ user }) => user.id === userToRemove.id)
+      .slice(0, 1)
+      .map(({ name }) => name)
+      .shift();
+
+    if (!enrolledName) {
+      return this.post(channelId, `${Bot.atUser(userToRemove)}, looks like you are not enrolled to the lesson`);
+    }
+
+    return this.schedule
+      .removeUserFromLesson(enrolledName, lesson)
+      .then(() => `${Bot.atUser(userToRemove)}, you are released from lesson at ${time.format('dddd, MMMM Do, k:mm')}`)
+      .then(text => this.post(channelId, text, [Bot.shortLessonDescription(lesson)]))
+      .catch(() => this.post(channelId, 'failed to unenroll'));
   }
 
   post(id, text, attachments = []) {
@@ -140,15 +178,11 @@ class Bot {
   }
 
   remindChannel(lesson) {
-    const seats = lesson.users.length;
-    const emptySeats = MAX_SPOTS >= seats ? MAX_SPOTS - seats : 0;
-    if (!emptySeats) {
-      this.log('remind:channel:skipped', this.channel.name);
-      return;
-    }
     this.log('remind:channel', this.channel.name);
-
-    const text = 'There are empty spots the next lesson';
+    let text = 'Next lesson will be started in 45 minutes, all spots are full!';
+    if (lesson.users.length < MAX_SPOTS) {
+      text = 'There are empty spots the next lesson';
+    }
     const attachments = [
       Object.assign(Bot.shortLessonDescription(lesson), {
         color: '#36a64f'
@@ -191,6 +225,10 @@ class Bot {
   getUserById(id) {
     return this.bot.users
       .find(user => user.id === id);
+  }
+
+  static atUser(user) {
+    return `<@${user.id}>`;
   }
 
   static shortLessonDescription(lesson) {

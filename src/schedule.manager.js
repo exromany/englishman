@@ -115,10 +115,10 @@ class ScheduleManager {
       .then(readDays({ url, sheetId }));
   }
 
-  loadUserCells(lesson) {
+  loadUserCells(lesson, withEmpty = true) {
     return this.docInit
       .then(doc => lift(doc.getCells)(lesson.sheetId, {
-        'return-empty': true,
+        'return-empty': withEmpty,
         'min-row': lesson.cellRow + 3,
         'max-row': lesson.cellRow + DAY_ROWS - 1,
         'min-col': lesson.cellCol,
@@ -126,11 +126,17 @@ class ScheduleManager {
       }));
   }
 
+  updateLessonUsers(lesson) {
+    return this.loadUserCells(lesson, false)
+      .then(cells => lesson.users = cells.map(cell => cell.value));
+  }
+
   addUserToLesson(name, lesson) {
     return this.loadUserCells(lesson)
       .then(cells => cells.find(cell => !cell.value))
       .then(cell => cell && lift(cell.setValue)(name) || Promise.reject('No empty cells'))
       .then(() => this.log('user:add', name, lesson.start))
+      .then(() => this.updateLessonUsers(lesson))
       .catch(err => (this.logError(err), Promise.reject(err)));
   }
 
@@ -146,6 +152,7 @@ class ScheduleManager {
         return Promise.all(cells.slice(index, lastIndex).map(shiftCells));
       })
       .then(() => this.log('user:remove', name, lesson.start))
+      .then(() => this.updateLessonUsers(lesson))
       .catch(err => (this.logError(err), Promise.reject(err)));
   }
 
