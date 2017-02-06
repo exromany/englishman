@@ -34,18 +34,22 @@ class Analizer {
 
   analize(text) {
     const words = this.tokenizer.tokenize(text);
+    const date = chrono.parse(text, new Date(), { forwardDate: true })[0];
     return this.tagger
       .then(tagger => tagger.tag(words))
       .then(Analizer.getAction)
+      .then(action => action ? this.stemmer.stem(action) : null)
+      .then(Analizer.classifyAction)
       .catch(() => null)
       .then(action => ({
-          action: action ? this.stemmer.stem(action) : null,
-          date: chrono.parse(text, new Date(), { forwardDate: true })[0]
+        action,
+        date: date && date.start
       }));
   }
 
   static getAction(tags) {
-    let action = tags.find(Analizer.isType('W')) || tags.find(Analizer.isType('VB', true));
+    // tags.map(t => console.log(t));
+    let action = tags.find(Analizer.isType('W')) || tags.find(Analizer.isType('VB'));
 
     if (!action) {
       const noun = tags.find(Analizer.isType('NN'));
@@ -55,12 +59,52 @@ class Analizer {
     if (!action) {
       action = tags.find(Analizer.isType('JJ'));
     }
+    if (!action) {
+      action = tags.find(Analizer.isType('N'));
+    }
+    if (!action) {
+      action = tags.find(Analizer.isType('UH'));
+    }
     return action ? action[0] : null;
   }
 
   static isType(type, strict = false) {
     return (tag) => strict ? tag[1] === type : tag[1].startsWith(type);
   }
+
+  static classifyAction(action) {
+    switch (action) {
+      case 'add':
+      case 'sign':
+      case 'signup':
+      case 'enrol':
+      case 'regist':
+        return Analizer.ENROLL_ACTION;
+      case 'hi':
+      case 'hello':
+      case 'ping':
+      case 'start':
+      case 'check':
+      case 'welcom':
+        return Analizer.HELLO_ACTION;
+      case 'tell':
+      case 'show':
+      case 'timet':
+      case 'schedul':
+        return Analizer.SCHEDULE_ACTION;
+      case 'help':
+      case 'what':
+        return Analizer.HELP_ACTION;
+      default:
+        return null;
+    }
+  }
+
 }
+
+Analizer.ENROLL_ACTION = 'enroll';
+Analizer.HELLO_ACTION = 'hello';
+Analizer.HELP_ACTION = 'help';
+Analizer.SCHEDULE_ACTION = 'schedule';
 
 module.exports = Analizer;
