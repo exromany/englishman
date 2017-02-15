@@ -42,7 +42,7 @@ class Bot {
     if (data.type !== 'message' || data.subtype || data.bot_id || !data.text) return;
     this.log(`message:${this.getUserById(data.user).name}`, data);
 
-    const text = (data.text || '').toLowerCase();
+    const text = (data.text || '').toLowerCase().trim();
 
     const isDirectMessage = data.channel.startsWith('D');
     const botCalled = isDirectMessage || this.selfNames.some(name => text.includes(name));
@@ -51,6 +51,10 @@ class Bot {
       .then(({ action, date }) => {
         this.log('message:parsed', { action, date: date && date.start.date() });
 
+        const matchWhoIs = text.match(/^who is (.+)$/);
+        if (botCalled && matchWhoIs) {
+          return this.sayWhoIs(data.channel, matchWhoIs[1]);
+        }
         if (botCalled && action === 'help') {
           return this.sayHelp(data.channel);
         }
@@ -63,8 +67,11 @@ class Bot {
         if (botCalled && action === 'unenroll') {
           return this.unenroll(data.channel, data.user, date && date.start);
         }
-        if (botCalled || text.includes('schedule') || text.includes('timetable')) {
+        if (botCalled || text.includes('schedule')) {
           return this.postSchedule(data.channel, date && date.start.date());
+        }
+        if (botCalled) {
+          return this.sayHi(data.channel);
         }
       });
   }
@@ -77,6 +84,15 @@ class Bot {
   sayHi(channelId) {
     const text = `${randomHi()}\nAsk me for schedule!`;
 
+    this.post(channelId, text)
+      .catch(this.logError);
+  }
+
+  sayWhoIs(channelId, userName) {
+    const channelUsers = this.getChannelUsers();
+    const user = Bot.findRelativeUser(userName, channelUsers);
+
+    const text = `\`${userName}\` is recognized as \`${user.real_name}\``;
     this.post(channelId, text)
       .catch(this.logError);
   }

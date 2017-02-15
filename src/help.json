@@ -12,17 +12,22 @@
       {
         "title": "Show timetable",
         "value": "```Show me schedule for today```",
-        "short": false
+        "short": true
+      },
+      {
+        "title": "Test name recognition",
+        "value": "```Who is Alex K```",
+        "short": true
       },
       {
         "title": "Enroll to lesson",
         "value": "```enroll me to wednesday, 12:00```",
-        "short": false
+        "short": true
       },
       {
         "title": "Unenroll from lesson",
         "value": "```unenroll me from wednesday, 12:00```",
-        "short": false
+        "short": true
       }
     ]
   },

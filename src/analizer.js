@@ -95,6 +95,9 @@ class Analizer {
       case 'tell':
       case 'show':
       case 'timet':
+      case 'lesson':
+      case 'scedul':
+      case 'shedul':
       case 'schedul':
         return Analizer.SCHEDULE_ACTION;
       case 'help':
