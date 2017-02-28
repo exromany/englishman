@@ -55,6 +55,7 @@ class ScheduleManager {
       .then(sheets => Promise.all(sheets.map(this.loadSheet)))
       .then(data => data.filter(x => x))
       .then(data => data.reduce((list, items) => list.concat(items), []))
+      .then(data => data.filter(x => x))
       .then(lessons => lessons.sort((a, b) => a.start - b.start))
       .then(lessons => {
         this.lessons = lessons;
