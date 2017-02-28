@@ -99,6 +99,10 @@ class ScheduleManager {
       const date = chrono.parseDate(getValue(cells.find(byPos(2, 1))));
       const parseTime = (text) => chrono.parse(text.replace(/\./g, ':'), date)[0];
 
+      if (!trainer) {
+        return undefined;
+      }
+
       return [1, 2, 3]
         .map(num => cells.filter(byCol(num)))
         .map(readLesson({ url, sheetId, parseTime, trainer }));
