@@ -26,6 +26,10 @@ class Bot {
 
     this.schedule = schedule;
     this.analizer = new Analizer();
+    this.init();
+  }
+
+  init() {
     this.bot = new SlackBot({ token: SLACK_TOKEN });
     this.bot.on('start', () => {
       this.channel = this.bot.channels.filter(channel => channel.is_member)[0];
@@ -34,8 +38,14 @@ class Bot {
     });
     this.bot.on('message', this.onMessage);
     this.bot.on('open', this.log.bind(this, 'connection:open'));
-    this.bot.on('error', this.log.bind(this, 'connection:error'));
-    this.bot.on('close', this.log.bind(this, 'connection:close'));
+    this.bot.on('error', (error) => {
+      this.log('connection:error', error);
+      process.exit(1);
+    });
+    this.bot.on('close', (why) => {
+      this.log('connection:close', why);
+      process.exit(1);
+    });
   }
 
   onMessage(data) {

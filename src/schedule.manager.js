@@ -63,7 +63,10 @@ class ScheduleManager {
 
         this.log('sync:done');
         this.emitter.emit('sync_done', lessons);
-      }, this.logError);
+      }, (error) => {
+        this.logError(error);
+        process.exit(1);
+      });
   }
 
   loadSheet(sheet) {
