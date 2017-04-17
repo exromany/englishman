@@ -20,7 +20,7 @@
     "google-spreadsheet": "^2.0.3",
     "mitt": "^1.1.1",
     "moment": "^2.18.1",
-    "natural": "^0.5.1",
+    "natural": "^0.4.0",
     "node-schedule": "^1.2.1",
     "slackbots": "^1.0.2",
     "unique-random-array": "^1.0.0",
