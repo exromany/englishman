@@ -40,11 +40,10 @@ class Bot {
     this.bot.on('open', this.log.bind(this, 'connection:open'));
     this.bot.on('error', (error) => {
       this.log('connection:error', error);
-      process.exit(1);
     });
     this.bot.on('close', (why) => {
       this.log('connection:close', why);
-      process.exit(1);
+      this.init();
     });
   }
 
