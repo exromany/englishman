@@ -20,23 +20,15 @@ class Analizer {
   }
 
   initTagger() {
-    return new Promise((resolve, reject) => {
-      const tagger = new natural.BrillPOSTagger(lexiconPath, rulesPath, defaultCategory, error => {
-        if (error) {
-          this.logError();
-          reject();
-        } else {
-          resolve(tagger);
-        }
-      });
-    });
+    const lexicon = new natural.Lexicon(lexiconPath, defaultCategory);
+    const ruleSet = new natural.RuleSet(rulesPath);
+    return new natural.BrillPOSTagger(lexicon, ruleSet);
   }
 
   analize(text) {
     const words = this.tokenizer.tokenize(text);
     const date = chrono.parse(text, new Date(), { forwardDate: true })[0];
-    return this.tagger
-      .then(tagger => tagger.tag(words))
+    return Promise.resolve(this.tagger.tag(words))
       .then(Analizer.getAction)
       .then(action => action ? this.stemmer.stem(action) : null)
       .then(Analizer.classifyAction)
