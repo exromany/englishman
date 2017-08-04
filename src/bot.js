@@ -23,6 +23,9 @@ class Bot {
     this.remindUsers = this.remindUsers.bind(this);
     this.remindUser = this.remindUser.bind(this);
     this.post = this.post.bind(this);
+    this.updatePostedLessons = this.updatePostedLessons.bind(this);
+
+    this.postedSchedule = [];
 
     this.schedule = schedule;
     this.analizer = new Analizer();
@@ -107,16 +110,17 @@ class Bot {
   }
 
   postSchedule(channelId, date) {
+    let messageFormatter = Bot.getPostScheduleMessage(date);
     const day = moment(date);
-    const dayFormat = day.format('dddd, MMMM Do');
-    let text = `Lessons on ${dayFormat}`;
-
     const d1 = day.clone().startOf('day');
     const d2 = day.clone().endOf('day');
     const lessons = this.schedule.findLessonsByDateRange([d1, d2]);
+    const message = messageFormatter(lessons);
+    let text = message.text;
+    const attachments = message.attachments;
 
     if (!lessons.length && date) {
-      text = `There are no lessons on ${dayFormat}`;
+      messageFormatter = null;
     } else if (!lessons.length) {
       const nextLesson = this.schedule.lessons.find(l => day.isSameOrBefore(l.start));
       const nextDate = nextLesson && nextLesson.start;
@@ -124,12 +128,16 @@ class Bot {
         return this.postSchedule(channelId, nextDate);
       } else {
         text = `There are no timetable`;
+        messageFormatter = null;
       }
     }
 
-    const attachments = lessons.map(Bot.shortLessonDescription);
-
     this.post(channelId, text, attachments)
+      .then(data => {
+        if (messageFormatter) {
+          this.savePostedLessons(data.ts, lessons, channelId, messageFormatter);
+        }
+      })
       .catch(this.logError);
   }
 
@@ -194,6 +202,40 @@ class Bot {
       .catch(() => this.post(channelId, 'failed to unenroll'));
   }
 
+  savePostedLessons(ts, lessons, channelId, messageFormatter) {
+    const data = {
+      ts,
+      channelId,
+      formatter: messageFormatter,
+      times: lessons.map(lesson => lesson.start),
+      users: lessons.map(lesson => lesson.users).join('|')
+    };
+    this.postedSchedule.push(data);
+  }
+
+  updatePostedLessons(lessons) {
+    const actualTime = moment().subtract(1, 'hour');
+    const freshTime = time => actualTime.isSameOrBefore(time);
+    const lessonByTime = time => lessons.find(lesson => lesson.start - time === 0);
+    this.postedSchedule.splice(0)
+      .filter(message => message.times.some(freshTime))
+      .forEach(message => {
+        const messageLessons = message.times.map(lessonByTime);
+        const users = messageLessons.map(lesson => lesson.users).join('|');
+        if (message.users === users) {
+          this.savePostedLessons(message.ts, messageLessons, message.channelId, message.formatter);
+          return;
+        }
+        this.log('update:schedule', message.channelId);
+        const { text, attachments } = message.formatter(messageLessons);
+        this.updatePost(message.channelId, message.ts, text, attachments)
+          .then(() => {
+            this.savePostedLessons(message.ts, messageLessons, message.channelId, message.formatter);
+          })
+          .catch(this.logError);
+      });
+  }
+
   post(id, text, attachments = []) {
     const messageParams = {
       attachments: attachments,
@@ -202,18 +244,21 @@ class Bot {
     return this.bot.postMessage(id, text, messageParams);
   }
 
+  updatePost(id, ts, text, attachments = []) {
+    const messageParams = {
+      attachments: attachments,
+      as_user: true
+    };
+    return this.bot.updateMessage(id, ts, text, messageParams);
+  }
+
   remindChannel(lesson) {
     this.log('remind:channel', this.channel.name);
-    let text = 'Next lesson will be started in 45 minutes, all spots are full!';
-    if (lesson.users.length < MAX_SPOTS) {
-      text = 'There are empty spots the next lesson';
-    }
-    const attachments = [
-      Object.assign(Bot.shortLessonDescription(lesson), {
-        color: '#36a64f'
-      })
-    ];
+    const { text, attachments } = Bot.getRemindChannelMessage([lesson]);
     this.post(this.channel.id, text, attachments)
+      .then(data => {
+        this.savePostedLessons(data.ts, [lesson], this.channel.id, Bot.getRemindChannelMessage);
+      })
       .catch(this.logError);
   }
 
@@ -254,6 +299,38 @@ class Bot {
 
   static atUser(user) {
     return `<@${user.id}>`;
+  }
+
+  static getPostScheduleMessage(date) {
+    const day = moment(date);
+    const dayFormat = day.format('dddd, MMMM Do');
+
+    return (lessons) => {
+      const text = lessons.length ? `Lessons on ${dayFormat}` : `There are no lessons on ${dayFormat}`;
+      const attachments = lessons.map(Bot.shortLessonDescription);
+
+      return {
+        text,
+        attachments
+      };
+    };
+  }
+
+  static getRemindChannelMessage(lessons) {
+    const lesson = lessons[0];
+    let text = 'Next lesson will be started in 45 minutes, all spots are full!';
+    if (lesson.users.length < MAX_SPOTS) {
+      text = 'There are empty spots the next lesson';
+    }
+    const attachments = [
+      Object.assign(Bot.shortLessonDescription(lesson), {
+        color: '#36a64f'
+      })
+    ];
+    return {
+      text,
+      attachments
+    };
   }
 
   static shortLessonDescription(lesson) {

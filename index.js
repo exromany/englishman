@@ -10,6 +10,7 @@ const jobs = new JobsManager();
 const bot = new Bot(schedule);
 
 schedule.on('sync_done', jobs.update);
+schedule.on('sync_done', bot.updatePostedLessons);
 jobs.on('remind_channel_before_lesson', bot.remindChannel);
 jobs.on('remind_users_before_lesson', bot.remindUsers);
 
