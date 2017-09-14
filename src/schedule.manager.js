@@ -127,7 +127,7 @@ class ScheduleManager {
       .then(doc => lift(doc.getCells)(lesson.sheetId, {
         'return-empty': withEmpty,
         'min-row': lesson.cellRow + 3,
-        'max-row': lesson.cellRow + DAY_ROWS - 1,
+        'max-row': lesson.cellRow + DAY_ROWS,// - 1,
         'min-col': lesson.cellCol,
         'max-col': lesson.cellCol
       }));
