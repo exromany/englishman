@@ -83,6 +83,9 @@ class ScheduleManager {
     const getValue = (cell) => cell ? cell.value : null;
 
     const readLesson = ({ url, sheetId, parseTime, trainer }) => (cells) => {
+      if (!cells.length) {
+        return null;
+      }
       const time = parseTime(getValue(cells.find(byRow(2))));
       return {
         start: time && time.start.date() || null,
@@ -100,7 +103,7 @@ class ScheduleManager {
     const readDay = ({ url, sheetId }) => (cells) => {
       const trainer = getValue(cells.find(byPos(1, 1)));
       const date = chrono.parseDate(getValue(cells.find(byPos(2, 1))));
-      const parseTime = (text) => chrono.parse(text.replace(/\./g, ':'), date)[0];
+      const parseTime = (text) => text && chrono.parse(text.replace(/\./g, ':'), date)[0] || null;
 
       if (!trainer) {
         return undefined;
