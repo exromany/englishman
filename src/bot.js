@@ -11,6 +11,7 @@ const helpMessage = require('./help.json');
 const randomHi = uniqueRandomArray(greetings);
 
 const SLACK_TOKEN = process.env.SLACK_TOKEN;
+const SHEET_KEY = process.env.SHEET_KEY;
 const MAX_SPOTS = parseInt(process.env.MAX_SPOTS, 10) || 5;
 
 class Bot {
@@ -70,6 +71,9 @@ class Bot {
         if (botCalled && action === 'help') {
           return this.sayHelp(data.channel);
         }
+        if (botCalled && action === 'link') {
+          return this.sayLink(data.channel);
+        }
         if (botCalled && action === 'hello') {
           return this.sayHi(data.channel);
         }
@@ -90,6 +94,12 @@ class Bot {
 
   sayHelp(channelId) {
     this.post(channelId, null, helpMessage)
+      .catch(this.logError);
+  }
+
+  sayLink(channelId) {
+    const text = `https://docs.google.com/spreadsheets/d/${SHEET_KEY}/edit`;
+    this.post(channelId, text)
       .catch(this.logError);
   }
 

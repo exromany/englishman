@@ -95,6 +95,10 @@ class Analizer {
       case 'help':
       case 'what':
         return Analizer.HELP_ACTION;
+      case 'link':
+      case 'page':
+      case 'souce':
+        return Analizer.LINK_ACTION;
       default:
         return null;
     }
@@ -106,6 +110,7 @@ Analizer.ENROLL_ACTION = 'enroll';
 Analizer.UNENROLL_ACTION = 'unenroll';
 Analizer.HELLO_ACTION = 'hello';
 Analizer.HELP_ACTION = 'help';
+Analizer.LINK_ACTION = 'link';
 Analizer.SCHEDULE_ACTION = 'schedule';
 
 module.exports = Analizer;
